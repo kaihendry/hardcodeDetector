@@ -1,0 +1,1 @@
+"""Hardcode detector package."""

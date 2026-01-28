@@ -1,0 +1,18 @@
+[project]
+name = "hardcode-detector"
+version = "0.1.0"
+description = "CDK Aspect to detect hardcoded resource names"
+requires-python = ">=3.11"
+dependencies = [
+    "aws-cdk-lib>=2.235.1",
+    "constructs>=10.4.5,<11.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "aws-cdk-cli>=2.1102.0",
+]
