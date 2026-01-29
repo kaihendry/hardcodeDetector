@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: GOOD - No hardcoded names, CloudFormation generates unique names (should pass)
+
+Resources:
+  # S3 Bucket - no BucketName, CloudFormation generates one
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  # DynamoDB Table - no TableName, CloudFormation generates one
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # SQS Queue - no QueueName, CloudFormation generates one
+  ProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 300
+
+  # SNS Topic - no TopicName, CloudFormation generates one
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: System Alerts
+
+  # Lambda Function - no FunctionName, CloudFormation generates one
+  ProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {'statusCode': 200}
+      Role: !GetAtt LambdaRole.Arn
+
+  # IAM Role - no RoleName, CloudFormation generates one
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  # Secrets Manager Secret - no Name, CloudFormation generates one
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Database credentials
+
+  # CloudWatch Log Group - no LogGroupName, CloudFormation generates one
+  AppLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30

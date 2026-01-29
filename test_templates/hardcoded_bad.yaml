@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: BAD - All hardcoded names (should trigger W9001 warnings)
+
+Resources:
+  # S3 Bucket with hardcoded name
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-company-data-bucket
+
+  # DynamoDB Table with hardcoded name
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: users-table
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # SQS Queue with hardcoded name
+  ProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: order-processing-queue
+
+  # SNS Topic with hardcoded name
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: system-alerts
+
+  # Lambda Function with hardcoded name
+  ProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: order-processor
+      Runtime: python3.11
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {'statusCode': 200}
+      Role: !GetAtt LambdaRole.Arn
+
+  # IAM Role with hardcoded name
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: order-processor-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  # Secrets Manager Secret with hardcoded name
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: prod/database/credentials
+      Description: Database credentials
+
+  # CloudWatch Log Group with hardcoded name
+  AppLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /app/production/logs
+      RetentionInDays: 30
