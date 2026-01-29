@@ -6,6 +6,18 @@ A CDK Aspect that detects hardcoded physical resource names which cause conflict
 
 When multiple developers deploy to a shared AWS account, hardcoded resource names like `tableName: 'users-table'` will conflict. Only CDK-generated names provide isolation.
 
+## Why This Approach?
+
+From [AWS CDK Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html):
+
+> **Use generated resource names, not physical names**
+>
+> Names are a precious resource. Each name can only be used once. Therefore, if you hardcode a table name or bucket name into your infrastructure and application, **you can't deploy that piece of infrastructure twice in the same account.**
+>
+> A better approach is to specify as few names as possible. If you omit resource names, **the AWS CDK will generate them for you** in a way that won't cause problems.
+
+This tool helps you find hardcoded names so you can remove them, enabling multiple isolated deployments via different stack names.
+
 ## Quick Start
 
 ```bash
