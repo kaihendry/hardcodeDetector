@@ -36,7 +36,7 @@ Aspects.of(app).add(HardcodedNameDetector())
 
 ## Developer Workflow for Feature Branches
 
-Once hardcoded names are removed, use **stack prefixes** to isolate your work.
+Once hardcoded names are removed, use **stack suffixes** to isolate your work.
 
 ### How It Works
 
@@ -48,7 +48,7 @@ Different stack names = different resources = no conflicts.
 
 ### Step 1: Update Your CDK App
 
-Modify your `app.py` to accept a prefix:
+Modify your `app.py` to accept a suffix:
 
 ```python
 #!/usr/bin/env python3
@@ -58,9 +58,9 @@ from my_project.stack import MyStack
 
 app = cdk.App()
 
-# Get prefix from environment or use 'main' for CI/CD
-prefix = os.environ.get("STACK_PREFIX", "main")
-stack_name = f"MyStack-{prefix}" if prefix != "main" else "MyStack"
+# Get suffix from environment (empty = canonical stack for CI/CD)
+suffix = os.environ.get("STACK_SUFFIX", "")
+stack_name = f"MyStack-{suffix}" if suffix else "MyStack"
 
 MyStack(app, stack_name, env=cdk.Environment(region="eu-west-2"))
 
@@ -74,16 +74,16 @@ app.synth()
 git checkout -b feature/add-user-auth
 
 # 2. Deploy your isolated stack (use your name or branch name)
-STACK_PREFIX=alice uv run cdk deploy
+STACK_SUFFIX=alice uv run cdk deploy
 
 # 3. Develop and test against your isolated resources
 #    Your stack: MyStack-alice
 #    Your resources: mystack-alice-*
 
 # 4. When done, destroy your stack
-STACK_PREFIX=alice uv run cdk destroy
+STACK_SUFFIX=alice uv run cdk destroy
 
-# 5. Merge PR - CI/CD deploys to main stack (no prefix)
+# 5. Merge PR - CI/CD deploys to main stack (no suffix)
 git checkout main
 git merge feature/add-user-auth
 ```
@@ -94,9 +94,9 @@ Create `scripts/dev-deploy.sh`:
 
 ```bash
 #!/bin/bash
-# Deploy with your username as prefix
-export STACK_PREFIX="${STACK_PREFIX:-$(whoami)}"
-echo "Deploying stack: MyStack-${STACK_PREFIX}"
+# Deploy with your username as suffix
+export STACK_SUFFIX="${STACK_SUFFIX:-$(whoami)}"
+echo "Deploying stack: MyStack-${STACK_SUFFIX}"
 uv run cdk deploy "$@"
 ```
 
@@ -124,28 +124,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set stack prefix
+      - name: Set stack suffix
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            # PR deployments get branch-based prefix
+            # PR deployments get branch-based suffix
             BRANCH="${{ github.head_ref }}"
-            echo "STACK_PREFIX=${BRANCH//[^a-zA-Z0-9]/-}" >> $GITHUB_ENV
+            echo "STACK_SUFFIX=${BRANCH//[^a-zA-Z0-9]/-}" >> $GITHUB_ENV
           else
-            # Main branch uses canonical stack (no prefix needed)
-            echo "STACK_PREFIX=main" >> $GITHUB_ENV
+            # Main branch uses canonical stack (no suffix)
+            echo "STACK_SUFFIX=" >> $GITHUB_ENV
           fi
 
       - name: Deploy
         run: uv run cdk deploy --require-approval never
         env:
-          STACK_PREFIX: ${{ env.STACK_PREFIX }}
+          STACK_SUFFIX: ${{ env.STACK_SUFFIX }}
 
       # Clean up PR stacks on merge
       - name: Destroy PR stack
         if: github.event_name == 'pull_request' && github.event.action == 'closed'
         run: uv run cdk destroy --force
         env:
-          STACK_PREFIX: ${{ env.STACK_PREFIX }}
+          STACK_SUFFIX: ${{ env.STACK_SUFFIX }}
 ```
 
 ---
@@ -154,13 +154,13 @@ jobs:
 
 | Scenario | Stack Name | Command |
 |----------|------------|---------|
-| Local dev (Alice) | `MyStack-alice` | `STACK_PREFIX=alice cdk deploy` |
-| Local dev (Bob) | `MyStack-bob` | `STACK_PREFIX=bob cdk deploy` |
-| PR #123 | `MyStack-feature-xyz` | CI sets prefix from branch |
-| Main branch | `MyStack` | `STACK_PREFIX=main cdk deploy` |
+| Local dev (Alice) | `MyStack-alice` | `STACK_SUFFIX=alice cdk deploy` |
+| Local dev (Bob) | `MyStack-bob` | `STACK_SUFFIX=bob cdk deploy` |
+| PR #123 | `MyStack-feature-xyz` | CI sets suffix from branch |
+| Main branch | `MyStack` | No suffix needed |
 
 **Key points:**
 1. Remove all hardcoded physical resource names (use this detector to find them)
-2. Use `STACK_PREFIX` environment variable to namespace stacks
+2. Use `STACK_SUFFIX` environment variable to namespace stacks
 3. Always destroy your dev stacks when done
 4. CI/CD manages PR stacks automatically
