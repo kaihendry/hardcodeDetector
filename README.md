@@ -1,12 +1,12 @@
 # CDK Hardcoded Name Detector
 
-A CDK Aspect that detects hardcoded physical resource names which cause conflicts in shared development environments.
+Tools to detect hardcoded physical resource names in CDK/CloudFormation, which cause conflicts in shared development environments.
 
 ## The Problem
 
 When multiple developers deploy to a shared AWS account, hardcoded resource names like `tableName: 'users-table'` will conflict. Only CDK-generated names provide isolation.
 
-## Why This Approach?
+## Why This Matters
 
 From [AWS CDK Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html):
 
@@ -16,32 +16,76 @@ From [AWS CDK Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/best-prac
 >
 > A better approach is to specify as few names as possible. If you omit resource names, **the AWS CDK will generate them for you** in a way that won't cause problems.
 
-This tool helps you find hardcoded names so you can remove them, enabling multiple isolated deployments via different stack names.
+---
 
-## Quick Start
+## Detection Methods
+
+### Option 1: cfn-lint Custom Rule (Recommended)
+
+**No CDK code changes required.** Runs against synthesized CloudFormation templates.
 
 ```bash
-cd hardcodeDetector
-uv sync
+# Install
+uv add cfn-lint --dev
+
+# Synth and lint
 uv run cdk synth
+uv run cfn-lint cdk.out/*.template.json -a cfn_lint_rules/
 ```
 
-Expected output shows warnings for hardcoded names:
+Output:
 ```
-[Warning at /HardcodeDetectorStack/HardcodedBucket/Resource] Hardcoded BucketName: 'my-hardcoded-bucket-name' - consider using CDK-generated names for developer isolation
-[Warning at /HardcodeDetectorStack/HardcodedTable/Resource] Hardcoded TableName: 'users-table' - consider using CDK-generated names for developer isolation
+W9001 Hardcoded BucketName: 'my-hardcoded-bucket-name' in AWS::S3::Bucket.
+cdk.out/MyStack.template.json:6:5
+
+W9001 Hardcoded TableName: 'users-table' in AWS::DynamoDB::Table.
+cdk.out/MyStack.template.json:41:5
 ```
 
-## Using the Detector in Your Project
+Add to CI/CD:
+```yaml
+- name: Lint for hardcoded names
+  run: |
+    uv run cdk synth
+    uv run cfn-lint cdk.out/*.template.json -a cfn_lint_rules/
+```
 
-Copy `hardcode_detector/aspect.py` to your project and add to your `app.py`:
+Copy `cfn_lint_rules/hardcoded_names.py` to your projects.
+
+### Option 2: Scan Deployed Stacks
+
+Check already-deployed CloudFormation stacks via AWS API:
+
+```bash
+# Scan all stacks in your account
+python scripts/scan_deployed_stacks.py
+
+# Scan specific stacks
+python scripts/scan_deployed_stacks.py MyStack-prod MyStack-dev
+```
+
+### Option 3: CDK Aspect
+
+If you prefer runtime detection during synthesis, add the aspect to your `app.py`:
 
 ```python
 from aws_cdk import Aspects
 from hardcode_detector.aspect import HardcodedNameDetector
 
-# After creating your stacks
 Aspects.of(app).add(HardcodedNameDetector())
+```
+
+This requires modifying each CDK app, so **cfn-lint is preferred for large codebases**.
+
+---
+
+## Quick Demo
+
+```bash
+cd hardcodeDetector
+uv sync
+uv run cdk synth
+uv run cfn-lint cdk.out/*.template.json -a cfn_lint_rules/
 ```
 
 ---

@@ -15,4 +15,5 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "aws-cdk-cli>=2.1102.0",
+    "cfn-lint>=1.0.0",
 ]
