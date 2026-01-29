@@ -1,0 +1,24 @@
+repos:
+  # Option 1: Local hook that synths and lints (recommended for CDK projects)
+  - repo: local
+    hooks:
+      - id: cfn-lint-hardcoded-names
+        name: Check for hardcoded resource names
+        entry: bash -c 'uv run cdk synth -q 2>/dev/null && uv run cfn-lint cdk.out/*.template.json -a cfn_lint_rules/ -f parseable'
+        language: system
+        pass_filenames: false
+        # Only run when CDK-related files change
+        files: \.(py|json)$
+        # Skip if no templates exist yet
+        always_run: false
+
+  # Option 2: Standard cfn-lint hook (if you commit CloudFormation templates directly)
+  # Uncomment if you have templates checked into the repo
+  # - repo: https://github.com/aws-cloudformation/cfn-lint
+  #   rev: v1.43.4
+  #   hooks:
+  #     - id: cfn-lint
+  #       args:
+  #         - -a
+  #         - cfn_lint_rules/
+  #       files: \.template\.(json|yaml|yml)$
