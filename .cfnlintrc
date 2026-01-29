@@ -1,0 +1,16 @@
+# cfn-lint configuration
+# https://github.com/aws-cloudformation/cfn-lint
+
+templates:
+  - cdk.out/*.template.json
+
+append_rules:
+  - cfn_lint_rules/
+
+# Only check our custom hardcoded names rule (W9001)
+# Uncomment to run all rules:
+# include_checks: []
+
+# Ignore other warnings if you only want hardcoded name checks
+# configure_rules:
+#   W: ignore
